@@ -2,8 +2,15 @@
 const express = require('express');
 const _ = require('lodash');
 const app = express();
-app.get('/', (req, res) => res.send('Schedule Filter App'))
+app.get('/', mw_scheduleFilter)
+app.listen(3000, function () {
+    console.log("Express server listening on port 3000");
+});
 
+// Middleware function for root REST API 
+function mw_scheduleFilter(req, res){
+    res.json(scheduleFilter(req.body));
+}
 // Sample schedule 
 const s1 = [
     ["Mon,Sun 11:30-21:00", { "id": "a" }],
@@ -28,33 +35,57 @@ var DaysEnum = Object.freeze({
 
 /*
  * Validates that input meets any one of the following options:
- * 1. Day
- * 2. Day hh:mm-hh:mm
- * 3. Day-Day
- * 4. Day-Day hh:mm-hh:mm
+ * Case 1. Day
+ * Case 2. Day hh:mm-hh:mm
+ * Case 3. Day-Day
+ * Case 4. Day-Day hh:mm-hh:mm
+ * 
+ * Note, its expected that comma separated days are split before 
+ * passing to this function. 
  */
 function isValidInput(input) {
     var isValid = false;
     input = input.toLowerCase();
 
-    // 1.
-    if (_.includes(Object.keys(DaysEnum), input)) {
-        isValid = true;
-    };
-    var r1 = new RegExp('2[0-3]:[0-5][0-9]');
+    // Case 1. Single day
+    isValid = isValidDay(input); 
+
+    // Case 2. Day + time 
+    var twentyFourHourTimeFormat = new RegExp('... [0-2][0-3]:[0-5][0-9]'); // time 
+
     return isValid;
 }
 
-function scheduleFilter(event, datetime){
+function isValidDay(input) {
+    if (_.includes(Object.keys(DaysEnum), input)) {
+       return true;
+    }
+}
+
+/*
+ * @param t1 : Time range. Sample: "mon"
+ * @param t2 : Time range. Sample: "mon" 
+ * 
+ * Checks if t2 is during t1 
+ * 
+ */
+function isDuring(t1, t2) {
+    if (t1 == t2) return true; //base case 
+}
+
+function scheduleFilter(schedule, datetime) {
     var result = []; 
-    _.forEach(Events, (event) => {
-        if (isValidInput(event[0])){
+    schedule = schedule.replace(/|/g ,','); // replace all columns | with commas 
+    
+    for (var event of schedule) {
+        if (isValidInput(event[0])) {
             if (isDuring(event[0], datetime)) {
                 result.push(event[1]);
             }
         }
-    })
+    }
     return result;
 }
 
-module.exports = isValidInput, scheduleFilter;
+exports.isValidInput = isValidInput;
+exports.scheduleFilter = scheduleFilter;
