@@ -42,13 +42,13 @@ function isValidInput(input) {
         isValid = true;
 
         // Case 2. Day + hours
-    } else if (input.indexOf(/\d\d:\d\d/) > 0) {
+    } else if (new RegExp('.*[0-2][0-3]:[0-5][0-9]-[0-2][0-3]:[0-5][0-9]').test(input)) { // contains a 24h time range
         console.log("Case 2: Day + hours");
         var dayAndTimeInput = input.split(" ");
         dayAndTimeInput = dayAndTimeInput.map(str => str.trim());
         if (dayAndTimeInput.length > 0) {
-            var twentyFourHourTimeFormat = new RegExp('[0-2][0-3]:[0-5][0-9]'); // time 
-            isValid = isValidDay(dayAndTimeInput[0]) && twentyFourHourTimeFormat.test(dayAndTimeInput[2]);
+            var twentyFourHourTimeFormat = new RegExp('[0-2][0-3]:[0-5][0-9]-[0-2][0-3]:[0-5][0-9]'); // time 
+            isValid = isValidDay(dayAndTimeInput[0]) && twentyFourHourTimeFormat.test(dayAndTimeInput[1]);
         }
 
         // Case 3. Multiple time ranges

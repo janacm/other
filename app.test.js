@@ -57,6 +57,19 @@ test('Schedules with multiple days can be filtered on a single day', () => {
     ], "sat")).toEqual([]);
 });
 
+test('Days with hour ranges are valid input', () => {
+    expect(isValidInput("wed 01:01-02:03")).toEqual(true);
+    expect(isValidInput("thurs 11:30-23:09")).toEqual(true);
+});
+
+
+test('Schedules with hour ranges are valid input', () => {
+    expect(scheduleFilter([
+        ["wed 01:01-02:03", {"id": "a"}],
+        ["mon,wed", {"id": "b"}],
+        ["fri,wed", {"id": "b"}],
+    ], "wed 01:02")).toEqual(["a", "b"]);
+});
 
 // To do: Final test case: schedule filter works with the example given in the requirements PDF
 // Sample schedule 
