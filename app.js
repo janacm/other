@@ -1,26 +1,15 @@
-'use strict';
-const express = require('express');
-const _ = require('lodash');
+"use strict";
+/* jshint -W117 */
+/* jshint -W097 */
+
+var express = require('express');
 const app = express();
-app.get('/', mw_scheduleFilter)
-app.listen(3000, function () {
-    console.log("Express server listening on port 3000");
-});
+app.get('/', mw_scheduleFilter);
 
 // Middleware function for root REST API 
-function mw_scheduleFilter(req, res){
+function mw_scheduleFilter(req, res) {
     res.json(scheduleFilter(req.body));
 }
-// Sample schedule 
-const s1 = [
-    ["Mon,Sun 11:30-21:00", { "id": "a" }],
-    ["Tues-Thurs 12:00-13:00 | Sun 04:00-08:00", { "id": "b" }],
-    ["Mon-Wed,Fri 01:00-22:00 | Thurs 15:00-16:00 | Sat-Sun 10:00-24:00", { "id": "c" }],
-    ["Wed 00:00-24:00", { "id": "d" }],
-    ["Mon-Sat", { "id": "e" }],
-    ["Tues 05:00-05:20 | Mon-Wed 05:30-12:00", { "id": "f" }],
-    ["Sat,Sun 00:01-00:02 | Fri-Sat 0:30-17:00", { "id": "g" }]
-];
 
 var DaysEnum = Object.freeze({
     "mon": 1,
@@ -37,33 +26,63 @@ var DaysEnum = Object.freeze({
  * Validates that input meets any one of the following options:
  * Case 1. Day
  * Case 2. Day hh:mm-hh:mm
- * Case 3. Day-Day
- * Case 4. Day-Day hh:mm-hh:mm
+ * Case 3. Day, Day
+ * Case 4. Day-Day
+ * Case 5. Day-Day hh:mm-hh:mm
  * 
  * Note, its expected that comma separated days are split before 
  * passing to this function. 
  */
 function isValidInput(input) {
     var isValid = false;
-    input = input.toLowerCase();
+    input = input.toLowerCase().trim();
 
     // Case 1. Single day
-    isValid = isValidDay(input); 
+    if (isValidDay(input)) {
+        isValid = true;
 
-    // Case 2. Day + time 
-    var twentyFourHourTimeFormat = new RegExp('... [0-2][0-3]:[0-5][0-9]'); // time 
+        // Case 2. Day + hours
+    } else if (input.indexOf(/\d\d:\d\d/) > 0) {
+        console.log("Case 2: Day + hours");
+        var dayAndTimeInput = input.split(" ");
+        dayAndTimeInput = dayAndTimeInput.map(str => str.trim());
+        if (dayAndTimeInput.length > 0) {
+            var twentyFourHourTimeFormat = new RegExp('[0-2][0-3]:[0-5][0-9]'); // time 
+            isValid = isValidDay(dayAndTimeInput[0]) && twentyFourHourTimeFormat.test(dayAndTimeInput[2]);
+        }
+
+        // Case 3. Multiple time ranges
+    } else if (input.indexOf(",") > 0) {
+        var timeRanges = input.split(",");
+        timeRanges = timeRanges.map(str => str.trim());
+        if (Array.isArray(timeRanges) && timeRanges.length > 1) {
+            var foundValidDay = false;
+            for (var timeRange of timeRanges) {
+                if (isValidDay(timeRange) && !foundValidDay) {
+                    isValid = true;
+                    foundValidDay = true;
+                }
+            }
+        }
+    } else {
+        console.log("Error: Unknown input format");
+    }
 
     return isValid;
 }
 
 function isValidDay(input) {
-    if (_.includes(Object.keys(DaysEnum), input)) {
-       return true;
+    if (Object.keys(DaysEnum).indexOf(input) != -1) { // To do: handle case where 
+        return true;
     }
 }
 
 /*
- * @param t1 : Time range. Sample: "mon"
+ * @param t1 : Time range.
+ *  Sample input: "mon"
+ *  Sample input: "mon, wed"
+ *  Sample input: "mon 11:30"
+ * 
  * @param t2 : Time range. Sample: "mon" 
  * 
  * Checks if t2 is during t1 
@@ -73,16 +92,35 @@ function isDuring(t1, t2) {
     if (t1 == t2) return true; //base case 
 }
 
+/*
+ * @param schedule : an array of arrays. Each sub array contains ["String of time ranges", {id : "char"}]
+ * @param datetime : a datetime to filter on 
+ */
 function scheduleFilter(schedule, datetime) {
-    var result = []; 
-    schedule = schedule.replace(/|/g ,','); // replace all columns | with commas 
-    
-    for (var event of schedule) {
-        if (isValidInput(event[0])) {
-            if (isDuring(event[0], datetime)) {
-                result.push(event[1]);
+    var result = [];
+
+    for (var timeRangesAndEvent of schedule) {
+        timeRangesAndEvent[0] = timeRangesAndEvent[0].replace(/\|/g, ','); // replace all columns | with commas 
+        var individualTimeRanges = timeRangesAndEvent[0].split(","); // in case of multiple timeRanges
+        var isDuringAtLeastOneTimeRange = false;
+
+        for (var individualTimeRange of individualTimeRanges) {
+            if (isValidInput(individualTimeRange) && !isDuringAtLeastOneTimeRange) {
+                if (isDuring(individualTimeRange, datetime)) {
+                    result.push(timeRangesAndEvent[1].id);
+                    isDuringAtLeastOneTimeRange = true; // no need to continue checking rest of time ranges
+                }
             }
         }
+
+        // for (var oneTimeRange of individualTimeRanges) {
+        //     if (isValidInput(oneTimeRange) && !isDuringAtLeastOneTimeRange) {
+        //         if (isDuring(oneTimeRange, datetime)) {
+        //             result.push(timeRangesAndEvent[1].id);
+        //             isDuringAtLeastOneTimeRange = true; // no need to continue checking rest of time ranges
+        //         }
+        //     }
+        // }
     }
     return result;
 }

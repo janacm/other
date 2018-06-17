@@ -11,9 +11,15 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.16.3",
+    "jshint": "^2.9.5",
     "lodash": "^4.17.10"
   },
   "devDependencies": {
+    "babel-preset-stage-2": "^6.24.1",
     "jest": "^23.1.0"
+  },
+  "jshintConfig": {
+    "esversion": 6,
+    "node": true
   }
 }
