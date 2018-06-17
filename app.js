@@ -4,7 +4,12 @@
 
 var express = require('express');
 const app = express();
-app.get('/', mw_scheduleFilter);
+app.get('/', greeter);
+
+function greeter(req, res) {
+    res.send("Welcome to Janac Meenachisundaram's implementation of the Schedule Filter take-home project");
+}
+
 
 // Middleware function for root REST API 
 function mw_scheduleFilter(req, res) {
@@ -127,3 +132,4 @@ function scheduleFilter(schedule, datetime) {
 
 exports.isValidInput = isValidInput;
 exports.scheduleFilter = scheduleFilter;
+module.exports = app;
