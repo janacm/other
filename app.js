@@ -4,7 +4,11 @@
 
 var express = require('express');
 const app = express();
+const bodyParser = require('body-parser');
+app.use(bodyParser.json());
+
 app.get('/', greeter);
+app.post('/scheduleFilter', mw_scheduleFilter);
 
 function greeter(req, res) {
     res.send("Welcome to Janac Meenachisundaram's implementation of the Schedule Filter take-home project");
@@ -13,7 +17,7 @@ function greeter(req, res) {
 
 // Middleware function for root REST API 
 function mw_scheduleFilter(req, res) {
-    res.json(scheduleFilter(req.body));
+    res.json(scheduleFilter(req.body.schedule, req.body.datetime));
 }
 
 var DaysEnum = Object.freeze({
@@ -130,6 +134,6 @@ function scheduleFilter(schedule, datetime) {
     return result;
 }
 
+module.exports = app;
 exports.isValidInput = isValidInput;
 exports.scheduleFilter = scheduleFilter;
-module.exports = app;
